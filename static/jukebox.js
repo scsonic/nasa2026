@@ -24,6 +24,7 @@ const el = {
   floorNum: $("#floor-num"), floorOf: $("#floor-of"),
   dialPrev: $("#dial-prev"), dialNext: $("#dial-next"),
   digitsBtn: $("#btn-digits"), digits: [...document.querySelectorAll("#digit-boxes span")], clear: $("#btn-clear"),
+  random: $("#btn-random"),
   start: $("#btn-start"),
   nd: $("#numdlg"), ndForm: $("#nd-form"), ndInput: $("#nd-input"), ndMsg: $("#nd-msg"), ndCancel: $("#nd-cancel"), ndOk: $("#nd-ok"),
   chalk: $("#chalk"), tilt: $("#tilt"), tiltMsg: $("#tilt-msg"), tiltOk: $("#tilt-ok"), tiltH: $("#tilt-h"),
@@ -327,6 +328,38 @@ async function submitNumber() {
   if (el.nd.hidden || res.stale) return;
   if (res.ok) { closeNumberDialog(); el.start.focus(); announce(`Record ${id}, ${state.selected.title}, is ready. Press Start.`); }
   else { ndMessage(res.message, "bad"); el.ndInput.select(); }
+}
+
+/* ===================== Random record ===================== */
+// SVS page IDs live in two blocks (sampled Nov 2026: ~75% of IDs in them are real pages;
+// 6000-9999 and everything above 15120 are almost all empty).
+const RANDOM_RANGES = [[1, 5690], [10000, 15120]];
+const RANDOM_TRIES = 8;
+function randomSvsId() {
+  let k = Math.floor(Math.random() * RANDOM_RANGES.reduce((n, [lo, hi]) => n + hi - lo + 1, 0));
+  for (const [lo, hi] of RANDOM_RANGES) {
+    if (k <= hi - lo) return lo + k;
+    k -= hi - lo + 1;
+  }
+}
+async function playRandom() {
+  if (state.starting || state.randomBusy) return;
+  ensureAudioGraph(); // inside the click, so the browser lets us play later
+  state.randomBusy = true;
+  el.random.disabled = true;
+  try {
+    for (let i = 0; i < RANDOM_TRIES; i++) {
+      const id = randomSvsId();
+      setNumber(id);
+      const res = await lookup(id);
+      if (res.stale) return;
+      if (res.ok) { await start(); return; }
+    }
+    tilt("No record turned up this time. Press Random again.", "No luck");
+  } finally {
+    state.randomBusy = false;
+    el.random.disabled = false;
+  }
 }
 
 /* ===================== START → generate ===================== */
@@ -829,6 +862,7 @@ function wire() {
 
   el.digitsBtn.addEventListener("click", () => openNumberDialog(state.num));
   el.clear.addEventListener("click", clearNumber);
+  el.random.addEventListener("click", playRandom);
   el.ndForm.addEventListener("submit", (e) => { e.preventDefault(); submitNumber(); });
   el.ndCancel.addEventListener("click", closeNumberDialog);
   el.nd.addEventListener("click", (e) => { if (e.target === el.nd) closeNumberDialog(); });

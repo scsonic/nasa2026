@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@400;700&family=Monoton&family=Oswald:wght@400;600;700&family=Patrick+Hand&family=Share+Tech+Mono&family=Special+Elite&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/jukebox.css?v=16">
+  <link rel="stylesheet" href="/static/jukebox.css?v=20">
 </head>
 <body>
   <div id="sr-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
@@ -132,6 +132,7 @@
               <span id="digit-boxes" class="digit-boxes" aria-hidden="true"><span>0</span><span>0</span><span>0</span><span>0</span><span>0</span></span>
             </button>
             <button id="btn-clear" class="clear-btn" type="button" aria-label="Clear the number">C</button>
+            <button id="btn-random" class="random-btn" type="button" aria-label="Play a random record">Random</button>
             <span class="sel-spacer"></span>
             <button id="btn-start" class="start" type="button"><span>Start</span></button>
             <div class="coin" aria-hidden="true"><div class="slot"></div><small>Free play</small></div>
@@ -194,6 +195,6 @@
   </div>
 
   <audio id="audio" preload="auto"></audio>
-  <script type="module" src="/static/jukebox.js?v=16"></script>
+  <script type="module" src="/static/jukebox.js?v=17"></script>
 </body>
 </html>
