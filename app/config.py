@@ -35,6 +35,8 @@ class Settings:
     musicgen_enabled = _bool("MUSICGEN_ENABLED", True)
     musicgen_model = os.environ.get("MUSICGEN_MODEL", "facebook/musicgen-medium")
     musicgen_seconds = _int("MUSICGEN_SECONDS", 30)
+    # Give up on one generation after this long (a normal 30 s clip takes ~80 s on a T4).
+    musicgen_timeout_seconds = _int("MUSICGEN_TIMEOUT_SECONDS", 300)
     colab_auth = os.environ.get("COLAB_AUTH", "oauth2")
     colab_gpu = os.environ.get("COLAB_GPU", "T4")
     colab_session = os.environ.get("COLAB_SESSION", "jukebox-musicgen")
