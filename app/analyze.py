@@ -33,7 +33,7 @@ class Section(BaseModel):
 class Analysis(BaseModel):
     summary: str = Field(description="1-2 plain-language sentences: what this visualization shows and why it matters")
     visual_description: str = Field(description="Alt text for blind and low-vision listeners: what the frame looks like (colors, shapes, layout). Max 60 words")
-    video_description: str = Field(description="Video analysis: what happens across the attached video frames, in time order - motion, what grows, shrinks, appears or moves, camera changes. 3-5 sentences. Empty string when no video frames are attached")
+    video_description: str = Field(description="Video analysis: what happens across the attached video frames, in time order - motion, what grows, shrinks, appears or moves, camera changes, the overall trend and any repeating cycle or frequency. 3-5 sentences. Empty string when no video frames are attached")
     sections: list[Section] = Field(description="Exactly 6 sections of about 5 seconds each, in order, that together make the 30 s piece. Each section varies a little from the previous one (instrument added or dropped, register, density, rhythm, dynamics) following the video frames in time order; without video, follow the arc of the data story")
     keywords: list[str] = Field(description="5 to 8 key words that drive the music")
     mood: str = Field(description="2-4 words")
@@ -59,10 +59,29 @@ warming reds -> brighter timbre and rising register; dense cloud cover -> thick 
 spiral storms -> swirling arpeggios; sparse dark ocean -> slow low drones; seasonal cycles -> repeating phrases.
 Reflect the emotional weight of the science (urgency of change, beauty of Earth systems).
 
+PHYSICAL ELEMENTS: look in the title, description, captions, keywords and images for the physical
+state of what is shown, e.g. wind, fire, water, ice, rain, snow, clouds, dust, smoke, lightning, lava,
+plasma, magnetic fields. These shape the sound directly, so let the dominant element set the TIMBRE
+and texture, and name those instruments and sound qualities in both the Lyria and MusicGen prompts:
+  wind / air -> breathy flutes, airy whooshing pads, filtered noise swells
+  fire / heat / wildfire -> crackling textures, distorted or bright brass, driving taiko-like percussion
+  water / ocean / rain -> flowing harp and piano arpeggios, liquid synth plucks, soft rolling waves of sound
+  ice / snow / glaciers -> glassy bells, celesta, crystalline high register, cold sparse reverb
+  storms / lightning -> dark rumbling low strings, sudden accents, thunderous timpani
+  sun / plasma / space weather -> shimmering synths, bright metallic tones, pulsing arpeggiators
+  land / rock / volcano -> deep earthy drums, low cello and bass, gritty textures
+When several elements appear, blend them and let the most prominent one lead.
+
 VIDEO: when video frames are attached they are stills from the first 30 seconds of the
 visualization's video, one every 3 seconds in time order (0 s, 3 s, 6 s, ... 27 s, end).
 Pay close attention to the changes in the video: compare each frame with the one before and
 notice what moves, grows, shrinks, appears, fades or changes color, and how fast it happens.
+Look for the TREND across all frames (rising, falling, spreading, shrinking, steady, accelerating)
+and for any FREQUENCY or rhythm in it (daily or seasonal cycles, orbits, rotations, pulses, waves,
+repeating patterns and roughly how often they repeat). Turn the trend into the overall arc of the
+music (e.g. rising intensity, register or density) and the frequency into rhythm and tempo (e.g. a
+fast repeating cycle -> a quicker pulse or ostinato; a slow cycle -> long phrases that return).
+State the trend and the frequency in video_description.
 Describe those changes (video_description) and build the music as SIX sections of ~5 seconds,
 each following the frames that fall in its 5-second window, so the music follows what happens
 on screen. Each section must differ a little from the one before. Without video frames, still write six sections that follow the arc of the data story
