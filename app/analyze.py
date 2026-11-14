@@ -60,10 +60,12 @@ spiral storms -> swirling arpeggios; sparse dark ocean -> slow low drones; seaso
 Reflect the emotional weight of the science (urgency of change, beauty of Earth systems).
 
 VIDEO: when video frames are attached they are stills from the first 30 seconds of the
-visualization's video, in time order (0 s, 6 s, 12 s, 18 s, 24 s, end). Describe what changes
-across them (video_description) and build the music as SIX sections of ~5 seconds, one per
-frame, so the music follows what happens on screen. Each section must differ a little from the
-one before. Without video frames, still write six sections that follow the arc of the data story
+visualization's video, one every 3 seconds in time order (0 s, 3 s, 6 s, ... 27 s, end).
+Pay close attention to the changes in the video: compare each frame with the one before and
+notice what moves, grows, shrinks, appears, fades or changes color, and how fast it happens.
+Describe those changes (video_description) and build the music as SIX sections of ~5 seconds,
+each following the frames that fall in its 5-second window, so the music follows what happens
+on screen. Each section must differ a little from the one before. Without video frames, still write six sections that follow the arc of the data story
 from the text and the main image, and leave video_description empty.
 All prompts must be in English and describe instrumental music only."""
 

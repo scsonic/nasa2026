@@ -1,7 +1,7 @@
 """Grab still frames from an SVS visualization video for Gemini.
 
-Only the first 30 seconds matter: frames at 0, 6, 12, 18, 24 s plus one at the end of
-that window (or the last frame of a shorter video) -> 6 frames, each scaled to fit
+Only the first 30 seconds matter: a frame every 3 s (0, 3, ... 27 s) plus one at the end of
+that window (or the last frame of a shorter video) -> 11 frames, each scaled to fit
 within 632x632 (under 640x640) and JPEG encoded. ffmpeg seeks inside the remote mp4 with HTTP range
 requests, so the whole video is never downloaded.
 """
@@ -14,7 +14,7 @@ import shutil
 log = logging.getLogger("jukebox.video")
 
 WINDOW = 30.0       # seconds of video to look at
-STEP = 6.0          # one frame every STEP seconds from 0
+STEP = 3.0          # one frame every STEP seconds from 0
 MAX_SIDE = 632      # frames fit within MAX_SIDE x MAX_SIDE (under 640x640)
 FRAME_TIMEOUT = 90  # seconds per ffmpeg call
 FFMPEG = shutil.which("ffmpeg")
