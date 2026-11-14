@@ -8,7 +8,7 @@ import time
 from typing import Any
 
 from . import analyze, lyria, svs, video
-from .audio_utils import finalize
+from .audio_utils import finalize, track_tags
 from .config import settings
 from .db import DB
 
@@ -142,7 +142,8 @@ class Pipeline:
             self.db.update(code, analysis_json=analysis)
 
             if self.musicgen is not None:
-                self.musicgen.submit(code, analysis["musicgen_prompt"])
+                self.musicgen.submit(code, analysis["musicgen_prompt"],
+                                     track_tags(code, "Part 2", "Meta MusicGen", item["id"], item["title"]))
 
             self.db.set_stage(code, "composing")
             self.db.update_track(code, "lyria", status="working", stage="composing")
@@ -153,7 +154,7 @@ class Pipeline:
                 # Retry once with the shorter MusicGen prompt (Lyria sometimes filters long prompts).
                 log.warning("Lyria failed for %s (%s); retrying with short prompt", code, exc)
                 await lyria.generate(analysis["musicgen_prompt"], "vocals, lyrics", wav)
-            served = await finalize(wav)
+            served = await finalize(wav, track_tags(code, "Part 1", "Google Lyria 2", item["id"], item["title"]))
             self.db.update_track(code, "lyria", status="done", stage="done", file=served.name, error=None)
             self.db.set_stage(code, "done")
         except Exception as exc:  # noqa: BLE001 - surface every failure to the UI

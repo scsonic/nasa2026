@@ -141,7 +141,7 @@ class MusicGenWorker:
     def __init__(self, update_track: TrackUpdate, on_done: DoneHook):
         self.update_track = update_track
         self.on_done = on_done
-        self.queue: asyncio.Queue[tuple[str, str]] = asyncio.Queue()
+        self.queue: asyncio.Queue[tuple[str, str, dict[str, str]]] = asyncio.Queue()
         self.session_up = False
         self.model_loaded = False
         self._worker: asyncio.Task | None = None
@@ -164,12 +164,12 @@ class MusicGenWorker:
         if self.session_up:
             await self._stop_session("server shutdown")
 
-    def submit(self, code: str, prompt: str) -> None:
+    def submit(self, code: str, prompt: str, tags: dict[str, str] | None = None) -> None:
         if self._idle:
             self._idle.cancel()
             self._idle = None
         self.update_track(code, "musicgen", status="queued", stage="queued", position=self.queue.qsize() + 1)
-        self.queue.put_nowait((code, prompt))
+        self.queue.put_nowait((code, prompt, tags or {}))
 
     def status(self) -> dict:
         return {"session": self.session, "session_up": self.session_up, "model_loaded": self.model_loaded,
@@ -181,9 +181,9 @@ class MusicGenWorker:
     # ---------- worker ----------
     async def _run(self) -> None:
         while True:
-            code, prompt = await self.queue.get()
+            code, prompt, tags = await self.queue.get()
             try:
-                await self._process(code, prompt)
+                await self._process(code, prompt, tags)
             except asyncio.CancelledError:
                 raise
             except Exception as exc:  # noqa: BLE001 - report any failure on the track
@@ -196,7 +196,7 @@ class MusicGenWorker:
             if self.queue.empty() and self.session_up:
                 self._idle = asyncio.create_task(self._idle_stop())
 
-    async def _process(self, code: str, prompt: str) -> None:
+    async def _process(self, code: str, prompt: str, tags: dict[str, str]) -> None:
         remote = f"/content/out/{code}.wav"
         for attempt in (1, 2):
             try:
@@ -219,7 +219,7 @@ class MusicGenWorker:
                 if not local.exists() or local.stat().st_size < 1000:
                     raise ColabError("downloaded MusicGen file is missing or empty")
                 from .audio_utils import finalize
-                served = await finalize(local)
+                served = await finalize(local, tags)
                 self.update_track(code, "musicgen", status="done", stage="done", file=served.name, error=None)
                 await self.on_done(code)
                 return
