@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import svs
+from . import svs, tts
 from .categories import CATEGORIES
 from .config import ROOT, settings
 from .db import DB
@@ -193,6 +193,20 @@ async def generation_record(code: str) -> dict:
     if not row:
         raise HTTPException(404, "No such generation")
     return row["result_json"] or public_view(row)
+
+
+@app.get("/api/tts/{code}/{section}")
+async def tts_audio(code: str, section: str) -> FileResponse:
+    """One blackboard section of this record, read aloud by Google TTS (MP3, cached)."""
+    row = db.get(code) if CODE_RE.match(code) and section in tts.SECTIONS else None
+    if not row or not row["analysis_json"]:
+        raise HTTPException(404, "Nothing to read")
+    try:
+        path = await tts.speech(code, section, row["analysis_json"])
+    except tts.TTSError as exc:
+        log.warning("TTS %s/%s failed: %s", code, section, exc)
+        raise HTTPException(502, "Text-to-speech failed")
+    return FileResponse(path, media_type="audio/mpeg", headers={"Cache-Control": "public, max-age=86400"})
 
 
 @app.get("/api/recent")

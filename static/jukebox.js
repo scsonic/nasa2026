@@ -675,7 +675,7 @@ function renderBoard(d) {
   }
   if (a && !state.boardAnalysis) {
     state.boardAnalysis = true;
-    $("#c-what")?.append(sayButton("What is this?", () => a.summary) || "");
+    $("#c-what")?.append(sayButton("What is this?", d.code, "summary"));
     $("#c-analysis").replaceChildren(...analysisNodes(d));
   }
 }
@@ -688,17 +688,14 @@ function analysisNodes(d) {
   const out = [];
   if (a.video_description) {
     out.push(
-      w(h("h3", {}, "Video analysis", sayButton("Video analysis", () => a.video_description))),
+      w(h("h3", {}, "Video analysis", sayButton("Video analysis", d.code, "video"))),
       w(h("p", {}, a.video_description)),
     );
   }
   out.push(
-    w(h("h3", {}, "How to listen", sayButton("How to listen", () => a.listening_guide))),
+    w(h("h3", {}, "How to listen", sayButton("How to listen", d.code, "listen"))),
     w(h("p", {}, a.listening_guide || "")),
-    w(h("h3", {}, "The recipe", sayButton("The recipe", () => [
-      a.mood && `Mood: ${a.mood}.`, a.tempo_bpm && `Tempo: ${a.tempo_bpm} beats per minute.`,
-      a.musical_key && `Key: ${a.musical_key}.`, (a.instruments || []).length && `Instruments: ${a.instruments.join(", ")}.`,
-    ].filter(Boolean).join(" ")))),
+    w(h("h3", {}, "The recipe", sayButton("The recipe", d.code, "recipe"))),
     w(h("div", { class: "recipe" },
       a.mood ? h("span", {}, h("b", {}, "Mood "), a.mood) : null,
       a.tempo_bpm ? h("span", {}, h("b", {}, "Tempo "), `${a.tempo_bpm} BPM`) : null,
@@ -707,12 +704,12 @@ function analysisNodes(d) {
   if ((a.instruments || []).length) out.push(w(h("p", {}, h("span", { class: "dim" }, "Instruments: "), a.instruments.join(", "))));
   out.push(
     w(h("h3", {}, "Part 1 · About the music", h("span", { class: "src" }, "by Google Lyria 2"),
-      sayButton("Part 1", () => `Part 1, by Google Lyria 2. ${a.lyria_prompt || ""}`))),
+      sayButton("Part 1", d.code, "part1"))),
     w(h("div", { class: "prompt" }, a.lyria_prompt || "")),
   );
   out.push(
     w(h("h3", {}, "Part 2 · About the music", h("span", { class: "src" }, "by Meta MusicGen"),
-      sayButton("Part 2", () => `Part 2, by Meta MusicGen. ${a.musicgen_prompt || ""}`))),
+      sayButton("Part 2", d.code, "part2"))),
     w(h("div", { class: "prompt p2" }, a.musicgen_prompt || "")),
   );
   out.push(w(h("div", { class: "links" },
@@ -721,42 +718,36 @@ function analysisNodes(d) {
   return out;
 }
 
-/* ===================== read aloud (browser text-to-speech) ===================== */
-// One voice at a time: a new speaker button cancels the current one; pressing the same one again stops it.
-const tts = "speechSynthesis" in window ? window.speechSynthesis : null;
+/* ===================== read aloud (Google Cloud TTS) ===================== */
+// One voice at a time: a new speaker button takes over; pressing the same one again stops it.
+// The server reads the section from the saved analysis and caches the MP3 per record.
+const voice = new Audio();
+voice.preload = "none";
 function setSaying(btn, on) {
   btn.classList.toggle("on", on);
   btn.setAttribute("aria-pressed", String(on));
 }
 function stopSpeaking() {
-  if (!tts) return;
   const btn = state.sayBtn;
   state.sayBtn = null;
   if (btn) setSaying(btn, false);
-  tts.cancel();
+  voice.pause();
 }
-function speak(btn, text) {
+function speak(btn, url) {
   const again = state.sayBtn === btn;
   stopSpeaking();
-  if (again || !text) return;
-  // Sentence-sized utterances: some browsers cut one long utterance off after ~15 s.
-  const parts = text.match(/[^.!?]+[.!?]*\s*/g) || [text];
-  const done = () => { if (state.sayBtn === btn) { state.sayBtn = null; setSaying(btn, false); } };
+  if (again) return;
   state.sayBtn = btn;
   setSaying(btn, true);
-  parts.forEach((part, i) => {
-    const u = new SpeechSynthesisUtterance(part.trim());
-    u.lang = "en-US";
-    u.onerror = done;
-    if (i === parts.length - 1) u.onend = done;
-    tts.speak(u);
-  });
+  voice.src = url;
+  voice.play().catch(() => { if (state.sayBtn === btn) stopSpeaking(); });
 }
-function sayButton(label, getText) {
-  if (!tts) return null;
+voice.addEventListener("ended", stopSpeaking);
+voice.addEventListener("error", () => { if (voice.src) stopSpeaking(); });
+function sayButton(label, code, section) {
   const btn = h("button", {
     class: "say", type: "button", title: "Read aloud", "aria-label": `Read "${label}" aloud`, "aria-pressed": "false",
-    onclick: (e) => { e.stopPropagation(); speak(btn, (getText() || "").trim()); },
+    onclick: (e) => { e.stopPropagation(); speak(btn, `/api/tts/${code}/${section}`); },
   });
   btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="cone" d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/>'
     + '<path class="wave" d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.8 7.8 0 0 1 0 11"/></svg>';

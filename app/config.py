@@ -31,6 +31,8 @@ class Settings:
     gemini_model = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
     lyria_location = os.environ.get("LYRIA_LOCATION", "us-central1")
     lyria_model = os.environ.get("LYRIA_MODEL", "lyria-002")
+    # Google Cloud Text-to-Speech voice for reading the blackboard aloud.
+    tts_voice = os.environ.get("TTS_VOICE", "en-US-Chirp3-HD-Aoede")
 
     musicgen_enabled = _bool("MUSICGEN_ENABLED", True)
     musicgen_model = os.environ.get("MUSICGEN_MODEL", "facebook/musicgen-medium")
@@ -60,6 +62,10 @@ class Settings:
         return self.data_dir / "tmp"
 
     @property
+    def tts_dir(self) -> Path:
+        return self.data_dir / "tts"
+
+    @property
     def db_path(self) -> Path:
         return self.data_dir / "jukebox.db"
 
@@ -67,3 +73,4 @@ class Settings:
 settings = Settings()
 settings.audio_dir.mkdir(parents=True, exist_ok=True)
 settings.tmp_dir.mkdir(parents=True, exist_ok=True)
+settings.tts_dir.mkdir(parents=True, exist_ok=True)
