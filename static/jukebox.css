@@ -514,6 +514,16 @@ body.stacked .stage { width: 1152px; height: 2160px; grid-template-columns: 1152
 .chalk .c-title { font-size: 40px; line-height: 1.1; margin: 4px 0 14px; color: #fff; }
 .chalk h3 { font-size: 29px; margin: 22px 0 6px; color: var(--chalk-y); }
 .chalk h3 .src { font: 21px "Patrick Hand"; color: var(--chalk-b); margin-left: 6px; }
+.chalk h3 .say {
+  width: 34px; height: 34px; margin-left: 8px; padding: 4px; border: 0; border-radius: 50%; vertical-align: -6px;
+  background: transparent; color: var(--chalk-b); cursor: pointer;
+}
+.chalk h3 .say svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.chalk h3 .say .cone { fill: currentColor; }
+.chalk h3 .say:hover, .chalk h3 .say:focus-visible { background: rgba(255,255,255,.12); color: #fff; outline: none; }
+.chalk h3 .say.on { color: var(--chalk-y); background: rgba(255,255,255,.12); }
+.chalk h3 .say.on .wave { animation: say 1s ease-in-out infinite; }
+@keyframes say { 50% { opacity: .25; } }
 .chalk p { margin: 0 0 8px; }
 .chalk .dim { color: rgba(241,239,230,.62); }
 .chalk ol.steps { margin: 18px 0 0; padding-left: 0; list-style: none; counter-reset: s; }

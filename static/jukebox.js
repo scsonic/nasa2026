@@ -604,6 +604,7 @@ function hello() {
     ].map(([tag, attrs]) => { const n = document.createElementNS("http://www.w3.org/2000/svg", tag); Object.entries(attrs).forEach(([k, v]) => n.setAttribute(k, v)); return n; }));
 }
 async function renderIdleBoard() {
+  stopSpeaking();
   state.boardTop = "idle";
   state.boardAnalysis = false;
   const recent = h("ul", { class: "recent" }, h("li", { class: "dim" }, "…"));
@@ -637,6 +638,7 @@ function renderBoard(d) {
   if (state.boardTop !== topKey) {
     state.boardTop = topKey;
     state.boardAnalysis = false;
+    stopSpeaking();
     const kicker = [`SVS No. ${pad5(s.id)}`, s.release_date, s.page_type].filter(Boolean).join(" · ");
     const nodes = [h("p", { class: "c-kicker w", style: { "--d": 0 } }, kicker), h("h2", { class: "c-title w", style: { "--d": 1 } }, s.title || "")];
     const img = s.image_url || (s.id ? `/api/cover/${s.id}` : null);
@@ -647,7 +649,7 @@ function renderBoard(d) {
       }, coverImg(s.id, img, s.title ? `NASA visualization: ${s.title}` : ""), h("span", {}, "NASA SVS ↗")));
     }
     nodes.push(
-      h("h3", { class: "w", style: { "--d": 2 } }, "What is this?"),
+      h("h3", { id: "c-what", class: "w", style: { "--d": 2 } }, "What is this?"),
       h("p", { id: "c-summary", class: "w", style: { "--d": 3 } }, ""),
       h("p", { id: "c-status", class: "wait w", style: { "--d": 4 } }, "Reading the NASA page"),
       h("div", { id: "c-analysis" }),
@@ -673,6 +675,7 @@ function renderBoard(d) {
   }
   if (a && !state.boardAnalysis) {
     state.boardAnalysis = true;
+    $("#c-what")?.append(sayButton("What is this?", () => a.summary) || "");
     $("#c-analysis").replaceChildren(...analysisNodes(d));
   }
 }
@@ -685,14 +688,17 @@ function analysisNodes(d) {
   const out = [];
   if (a.video_description) {
     out.push(
-      w(h("h3", {}, "Video analysis")),
+      w(h("h3", {}, "Video analysis", sayButton("Video analysis", () => a.video_description))),
       w(h("p", {}, a.video_description)),
     );
   }
   out.push(
-    w(h("h3", {}, "How to listen")),
+    w(h("h3", {}, "How to listen", sayButton("How to listen", () => a.listening_guide))),
     w(h("p", {}, a.listening_guide || "")),
-    w(h("h3", {}, "The recipe")),
+    w(h("h3", {}, "The recipe", sayButton("The recipe", () => [
+      a.mood && `Mood: ${a.mood}.`, a.tempo_bpm && `Tempo: ${a.tempo_bpm} beats per minute.`,
+      a.musical_key && `Key: ${a.musical_key}.`, (a.instruments || []).length && `Instruments: ${a.instruments.join(", ")}.`,
+    ].filter(Boolean).join(" ")))),
     w(h("div", { class: "recipe" },
       a.mood ? h("span", {}, h("b", {}, "Mood "), a.mood) : null,
       a.tempo_bpm ? h("span", {}, h("b", {}, "Tempo "), `${a.tempo_bpm} BPM`) : null,
@@ -700,17 +706,61 @@ function analysisNodes(d) {
   );
   if ((a.instruments || []).length) out.push(w(h("p", {}, h("span", { class: "dim" }, "Instruments: "), a.instruments.join(", "))));
   out.push(
-    w(h("h3", {}, "Part 1 · About the music", h("span", { class: "src" }, "by Google Lyria 2"))),
+    w(h("h3", {}, "Part 1 · About the music", h("span", { class: "src" }, "by Google Lyria 2"),
+      sayButton("Part 1", () => `Part 1, by Google Lyria 2. ${a.lyria_prompt || ""}`))),
     w(h("div", { class: "prompt" }, a.lyria_prompt || "")),
   );
   out.push(
-    w(h("h3", {}, "Part 2 · About the music", h("span", { class: "src" }, "by Meta MusicGen"))),
+    w(h("h3", {}, "Part 2 · About the music", h("span", { class: "src" }, "by Meta MusicGen"),
+      sayButton("Part 2", () => `Part 2, by Meta MusicGen. ${a.musicgen_prompt || ""}`))),
     w(h("div", { class: "prompt p2" }, a.musicgen_prompt || "")),
   );
   out.push(w(h("div", { class: "links" },
     h("a", { href: s.url || `https://svs.gsfc.nasa.gov/${s.id}/`, target: "_blank", rel: "noopener" }, "Open on NASA SVS ↗"),
     h("a", { href: `/api/generations/${d.code}/record`, target: "_blank", rel: "noopener" }, "{ } saved JSON"))));
   return out;
+}
+
+/* ===================== read aloud (browser text-to-speech) ===================== */
+// One voice at a time: a new speaker button cancels the current one; pressing the same one again stops it.
+const tts = "speechSynthesis" in window ? window.speechSynthesis : null;
+function setSaying(btn, on) {
+  btn.classList.toggle("on", on);
+  btn.setAttribute("aria-pressed", String(on));
+}
+function stopSpeaking() {
+  if (!tts) return;
+  const btn = state.sayBtn;
+  state.sayBtn = null;
+  if (btn) setSaying(btn, false);
+  tts.cancel();
+}
+function speak(btn, text) {
+  const again = state.sayBtn === btn;
+  stopSpeaking();
+  if (again || !text) return;
+  // Sentence-sized utterances: some browsers cut one long utterance off after ~15 s.
+  const parts = text.match(/[^.!?]+[.!?]*\s*/g) || [text];
+  const done = () => { if (state.sayBtn === btn) { state.sayBtn = null; setSaying(btn, false); } };
+  state.sayBtn = btn;
+  setSaying(btn, true);
+  parts.forEach((part, i) => {
+    const u = new SpeechSynthesisUtterance(part.trim());
+    u.lang = "en-US";
+    u.onerror = done;
+    if (i === parts.length - 1) u.onend = done;
+    tts.speak(u);
+  });
+}
+function sayButton(label, getText) {
+  if (!tts) return null;
+  const btn = h("button", {
+    class: "say", type: "button", title: "Read aloud", "aria-label": `Read "${label}" aloud`, "aria-pressed": "false",
+    onclick: (e) => { e.stopPropagation(); speak(btn, (getText() || "").trim()); },
+  });
+  btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="cone" d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/>'
+    + '<path class="wave" d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.8 7.8 0 0 1 0 11"/></svg>';
+  return btn;
 }
 
 /* ===================== share popover + cookie history ===================== */
