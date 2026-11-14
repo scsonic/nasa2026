@@ -7,7 +7,7 @@ import math
 import time
 from typing import Any
 
-from . import analyze, lyria, svs, video
+from . import analyze, lyria, svs, tts, video
 from .audio_utils import finalize, track_tags
 from .config import settings
 from .db import DB
@@ -104,7 +104,10 @@ class Pipeline:
         return tracks
 
     def launch(self, code: str) -> None:
-        task = asyncio.create_task(self.run(code), name=f"gen-{code}")
+        self._spawn(self.run(code), name=f"gen-{code}")
+
+    def _spawn(self, coro, name: str | None = None) -> None:
+        task = asyncio.create_task(coro, name=name)
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
 
@@ -140,6 +143,8 @@ class Pipeline:
             self.db.set_stage(code, "analyzing")
             analysis = await analyze.analyze(item, image, frames)
             self.db.update(code, analysis_json=analysis)
+            if settings.tts_prefetch:
+                self._spawn(tts.prefetch(code, analysis))
 
             if self.musicgen is not None:
                 self.musicgen.submit(code, analysis["musicgen_prompt"],

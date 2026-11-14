@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,7 @@ import httpx
 from .config import settings
 from .lyria import _token
 
+log = logging.getLogger("jukebox.tts")
 SECTIONS = ("summary", "video", "listen", "recipe", "part1", "part2")
 MAX_CHARS = 4000  # the API takes up to 5000 bytes of input
 _locks: dict[str, asyncio.Lock] = {}
@@ -58,7 +60,7 @@ async def speech(code: str, section: str, analysis: dict[str, Any]) -> Path:
             raise TTSError("nothing to read for this section")
         body = {"input": {"text": text},
                 "voice": {"languageCode": settings.tts_voice[:5], "name": settings.tts_voice},
-                "audioConfig": {"audioEncoding": "MP3"}}
+                "audioConfig": {"audioEncoding": "MP3", "speakingRate": settings.tts_speaking_rate}}
         headers = {"Authorization": f"Bearer {await _token()}", "x-goog-user-project": settings.project}
         async with httpx.AsyncClient(timeout=60) as http:
             resp = await http.post("https://texttospeech.googleapis.com/v1/text:synthesize", json=body, headers=headers)
@@ -69,3 +71,12 @@ async def speech(code: str, section: str, analysis: dict[str, Any]) -> Path:
         tmp.replace(path)
     _locks.pop(path.name, None)
     return path
+
+
+async def prefetch(code: str, analysis: dict[str, Any]) -> None:
+    """Synthesize every non-empty section in the background; failures are only logged."""
+    sections = [s for s in SECTIONS if section_text(analysis, s)]
+    results = await asyncio.gather(*(speech(code, s, analysis) for s in sections), return_exceptions=True)
+    for section, res in zip(sections, results):
+        if isinstance(res, BaseException):
+            log.warning("TTS prefetch %s/%s failed: %s", code, section, res)

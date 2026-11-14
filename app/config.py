@@ -33,6 +33,9 @@ class Settings:
     lyria_model = os.environ.get("LYRIA_MODEL", "lyria-002")
     # Google Cloud Text-to-Speech voice for reading the blackboard aloud.
     tts_voice = os.environ.get("TTS_VOICE", "en-US-Chirp3-HD-Aoede")
+    tts_speaking_rate = float(os.environ.get("TTS_SPEAKING_RATE", "1.15"))
+    # Synthesize every section as soon as the analysis is ready, so the speaker buttons play at once.
+    tts_prefetch = _bool("TTS_PREFETCH", True)
 
     musicgen_enabled = _bool("MUSICGEN_ENABLED", True)
     musicgen_model = os.environ.get("MUSICGEN_MODEL", "facebook/musicgen-medium")
