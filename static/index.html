@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Earth Spins · A NASA Data Jukebox</title>
+  <meta name="description" content="Pick a NASA Earth visualization and hear it: Gemini reads the image, Google Lyria and Meta MusicGen turn it into music.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23111'/%3E%3Ccircle cx='32' cy='32' r='12' fill='%23ff3f8e'/%3E%3Ccircle cx='32' cy='32' r='3' fill='%23111'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@400;700&family=Monoton&family=Oswald:wght@400;600;700&family=Patrick+Hand&family=Share+Tech+Mono&family=Special+Elite&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/jukebox.css?v=16">
+</head>
+<body>
+  <div id="sr-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <div id="viewport" class="viewport">
+    <div id="stage" class="stage">
+
+      <!-- ================= LEFT 60%: the jukebox ================= -->
+      <main class="juke-side" aria-label="Jukebox">
+        <div id="cabinet" class="cabinet">
+          <div class="tube left" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="tube right" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+
+          <!-- Dome: record rack, pulled-out record, EQ overlay -->
+          <section id="dome" class="dome" aria-label="Record window">
+            <div class="dome-rays" aria-hidden="true"></div>
+            <div id="dome-backdrop" class="dome-backdrop" aria-hidden="true"></div>
+
+            <div id="rack" class="rack" aria-hidden="true"></div>
+
+            <div id="showcase" class="showcase" hidden>
+              <div class="sleeve-wrap">
+                <div class="vinyl-out" aria-hidden="true"><div class="vinyl-label"></div></div>
+                <div class="sleeve big"><img id="show-img" alt=""><span class="sleeve-fallback" aria-hidden="true">♪</span></div>
+              </div>
+              <div class="show-info">
+                <div class="show-head"><div id="show-num" class="show-num">No. 00000</div><a id="show-open" class="open-btn" href="#" target="_blank" rel="noopener">Open<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></a></div>
+                <div id="show-title" class="show-title"></div>
+                <div id="show-meta" class="show-meta"></div>
+              </div>
+            </div>
+
+            <canvas id="eq" class="eq" aria-hidden="true"></canvas>
+            <!-- Neon title running along the round head of the jukebox -->
+            <h1 class="crown">
+              <span class="sr-only">Earth Spins · A NASA Data Jukebox · NASA Space Apps 2026</span>
+              <svg class="crown-svg" viewBox="0 0 960 368" aria-hidden="true">
+                <defs>
+                  <path id="arc-big" d="M 94 172 A 446 256 0 0 1 866 172"/>
+                  <path id="arc-small" d="M 148 169 A 405 228 0 0 1 812 169"/>
+                  <filter id="neon-glow" x="-10%" y="-60%" width="120%" height="220%">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b1"/>
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="b2"/>
+                    <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                </defs>
+                <text class="crown-big" filter="url(#neon-glow)"><textPath href="#arc-big" startOffset="50%" text-anchor="middle"><tspan class="c1">EARTH</tspan> <tspan class="c3">SPINS</tspan></textPath></text>
+                <text class="crown-small" filter="url(#neon-glow)"><textPath href="#arc-small" startOffset="50%" text-anchor="middle">A NASA DATA JUKEBOX · SPACE APPS 2026</textPath></text>
+              </svg>
+            </h1>
+            <button id="press-play" class="press-play" type="button" hidden>
+              <span class="pp-icon" aria-hidden="true">▶</span><span>Press to play</span>
+            </button>
+            <div class="dome-glass" aria-hidden="true"></div>
+          </section>
+
+          <!-- Now playing console: info + transport + parts + share -->
+          <section class="console" aria-label="Player">
+            <button id="btn-play" class="big-play" type="button" aria-label="Play" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path class="ico-play" d="M8 5v14l11-7z"/><path class="ico-pause" d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+            </button>
+
+            <div class="lcd">
+              <div id="lcd-top" class="lcd-top">Welcome · pick a topic, then a card</div>
+              <div class="lcd-title-wrap"><div id="lcd-title" class="lcd-title">EARTH SPINS</div></div>
+              <div class="lcd-bar">
+                <div id="gen-bar" class="gen-bar" role="progressbar" aria-label="Composing" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                  <div id="gen-fill" class="gen-fill"></div>
+                </div>
+                <input id="seek" class="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek" hidden>
+                <span id="lcd-time" class="lcd-time">0:00 / 0:00</span>
+                <a id="btn-dl" class="dl-btn" href="#" download data-tip="Download MP3" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 19h14"/></svg></a>
+              </div>
+            </div>
+
+            <div class="pbtns" role="group" aria-label="Parts and tools">
+              <button class="pbtn part" type="button" data-track="lyria" data-tip="Source: Google · Lyria 2" aria-label="Part 1, by Google Lyria 2" aria-pressed="false" disabled>
+                <span class="lamp" aria-hidden="true"></span><span class="pb-name">Part 1</span><span id="part-lyria-pct" class="part-pct"></span>
+              </button>
+              <button class="pbtn part" type="button" data-track="musicgen" data-tip="Source: FB · Meta MusicGen" aria-label="Part 2, by Meta MusicGen" aria-pressed="false" disabled>
+                <span class="lamp" aria-hidden="true"></span><span class="pb-name">Part 2</span><span id="part-musicgen-pct" class="part-pct"></span>
+              </button>
+              <button id="btn-share" class="pbtn tool" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="share-pop">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8l7.4-4.4M8.3 13.2l7.4 4.4"/></svg><span class="pb-name">Share</span>
+              </button>
+              <button id="btn-eject" class="pbtn tool" type="button" disabled>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5l7 9H5zM5 17h14v2H5z"/></svg><span class="pb-name">Eject</span>
+              </button>
+            </div>
+
+          </section>
+
+          <!-- Category keys -->
+          <section class="keys-wrap" aria-labelledby="keys-label">
+            <h2 id="keys-label" class="sr-only">Topics</h2>
+            <button id="dial-prev" class="dial-btn" type="button" aria-label="Previous topic">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-8 7 8 7z"/></svg>
+            </button>
+            <div id="keys" class="dial" role="group" aria-labelledby="keys-label" aria-roledescription="topic dial"></div>
+            <button id="dial-next" class="dial-btn" type="button" aria-label="Next topic">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l8 7-8 7z"/></svg>
+            </button>
+          </section>
+
+          <!-- Six cards + elevator (floor) panel -->
+          <section class="cards-wrap" aria-labelledby="cards-label">
+            <h2 id="cards-label" class="sr-only">Records on this floor</h2>
+            <ol id="cards" class="cards"></ol>
+            <div class="elevator" role="group" aria-label="Floors">
+              <button id="floor-up" class="floor-btn" type="button" aria-label="Previous floor (previous 6 results)">▲</button>
+              <div class="floor-dial" aria-live="polite"><small>FLOOR</small><b id="floor-num">--</b><small id="floor-of">of --</small></div>
+              <button id="floor-down" class="floor-btn" type="button" aria-label="Next floor (next 6 results)">▼</button>
+            </div>
+          </section>
+
+          <!-- Number selector + START -->
+          <section class="selector" aria-label="Select a record">
+            <span class="sel-label" aria-hidden="true">Record No.</span>
+            <button id="btn-digits" class="digits" type="button" aria-haspopup="dialog" aria-label="Record number: empty. Press to type a number.">
+              <span id="digit-boxes" class="digit-boxes" aria-hidden="true"><span>0</span><span>0</span><span>0</span><span>0</span><span>0</span></span>
+            </button>
+            <button id="btn-clear" class="clear-btn" type="button" aria-label="Clear the number">C</button>
+            <span class="sel-spacer"></span>
+            <button id="btn-start" class="start" type="button"><span>Start</span></button>
+            <div class="coin" aria-hidden="true"><div class="slot"></div><small>Free play</small></div>
+          </section>
+        </div>
+      </main>
+
+      <!-- ================= RIGHT 40%: the blackboard ================= -->
+      <aside class="board-side" aria-label="Blackboard: about this track">
+        <div class="blackboard">
+          <div id="chalk" class="chalk" tabindex="0"></div>
+          <div class="tray" aria-hidden="true"><i class="stick"></i><i class="stick y"></i><i class="stick p"></i><i class="eraser"></i></div>
+        </div>
+      </aside>
+
+      <!-- Share dialog (full screen, like the number dialog) -->
+      <div id="share-pop" class="tilt sharedlg" role="dialog" aria-modal="true" aria-labelledby="sp-title" hidden>
+        <div class="tilt-box share-box">
+          <button id="sp-close" class="sp-close" type="button" aria-label="Close">×</button>
+          <div id="sp-title" class="nd-h">Share this play</div>
+          <div id="sp-current" class="sp-current">
+            <label class="sr-only" for="share-url">Share link</label>
+            <input id="share-url" class="share-url" readonly value="">
+            <div class="sp-actions">
+              <button id="btn-copy" class="sp-btn" type="button">Copy link</button>
+              <a id="json-link" class="sp-btn ghost" href="#" target="_blank" rel="noopener" title="Saved JSON record">{ } JSON</a>
+            </div>
+          </div>
+          <p id="sp-none" class="sp-none">Pick a record and press START to get a share link.</p>
+          <div class="sp-head sub">Your plays <small>(saved in this browser)</small></div>
+          <ol id="sp-history" class="sp-history"></ol>
+        </div>
+      </div>
+
+      <!-- Type-a-number dialog -->
+      <div id="numdlg" class="tilt numdlg" role="dialog" aria-modal="true" aria-labelledby="nd-h" aria-describedby="nd-hint" hidden>
+        <form id="nd-form" class="tilt-box nd-box" novalidate>
+          <div id="nd-h" class="nd-h">Enter a record number</div>
+          <p id="nd-hint" class="nd-hint">Type <b>1 to 5 digits</b>. The number is the ID of a page on NASA's
+            Scientific Visualization Studio: <span class="nd-url">svs.gsfc.nasa.gov/<b>14369</b></span></p>
+          <input id="nd-input" class="nd-input" type="text" inputmode="numeric" maxlength="5" autocomplete="off"
+                 spellcheck="false" aria-label="Record number, 1 to 5 digits" aria-describedby="nd-msg">
+          <p id="nd-msg" class="nd-msg" aria-live="polite"></p>
+          <div class="nd-btns">
+            <button id="nd-cancel" class="sp-btn ghost" type="button">Cancel</button>
+            <button id="nd-ok" class="sp-btn" type="submit">OK</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Tilt / error message -->
+      <div id="tilt" class="tilt" role="alertdialog" aria-modal="true" aria-labelledby="tilt-h" aria-describedby="tilt-msg" hidden>
+        <div class="tilt-box">
+          <div id="tilt-h" class="tilt-h">Tilt!</div>
+          <p id="tilt-msg"></p>
+          <button id="tilt-ok" class="sp-btn" type="button">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <audio id="audio" preload="auto"></audio>
+  <script type="module" src="/static/jukebox.js?v=16"></script>
+</body>
+</html>

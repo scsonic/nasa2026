@@ -1,0 +1,27 @@
+# Earth Spins - systemd unit for the production server (nasa2026.scsonic.com).
+# Install:  sudo cp deploy/nasa2026.service /etc/systemd/system/
+#           sudo mkdir -p /var/log/nasa2026 && sudo chown ubuntu:ubuntu /var/log/nasa2026
+#           sudo systemctl daemon-reload && sudo systemctl enable --now nasa2026
+[Unit]
+Description=Nasa2026 FastAPI Application (Earth Spins)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/nasa2026
+EnvironmentFile=/home/ubuntu/nasa2026/.env
+# app.main:app is the FastAPI object. Keep ONE worker: generation jobs and the MusicGen
+# Colab worker live inside the process (4 workers = 4 Colab GPUs and jobs killed on restart).
+# Bind to 127.0.0.1 so only nginx (behind Cloudflare) can reach it.
+ExecStart=/bin/bash -c "source /home/ubuntu/miniconda3/bin/activate base && uvicorn app.main:app --host 127.0.0.1 --port 8200 --workers 1 --log-level debug"
+Restart=always
+RestartSec=3
+
+# Logging
+StandardOutput=append:/var/log/nasa2026/access.log
+StandardError=append:/var/log/nasa2026/error.log
+
+[Install]
+WantedBy=multi-user.target
