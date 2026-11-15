@@ -436,6 +436,86 @@ body.stacked .stage { width: 1152px; height: 2160px; grid-template-columns: 1152
 .floor-dial b { display: block; font: 36px/1 "Share Tech Mono"; }
 .floor-dial small { display: block; font-size: 13px; letter-spacing: .08em; }
 
+/* ---------- flipper: topics + cards on the front, the little TV on the back ---------- */
+.flipper { flex: 0 0 444px; position: relative; perspective: 1800px; }
+.flip-inner {
+  position: absolute; inset: 0; transform-style: preserve-3d;
+  transition: transform .9s cubic-bezier(.45,-0.15,.3,1.2);
+}
+.flipper.flipped .flip-inner { transform: rotateX(-180deg); }
+.flip-front, .flip-back { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.flip-front { display: flex; flex-direction: column; gap: 8px; }
+.flip-back { transform: rotateX(180deg); }
+
+.tv {
+  height: 100%; display: grid; grid-template-columns: 1fr 176px; gap: 16px;
+  padding: 16px 18px; border-radius: 22px;
+  background:
+    repeating-linear-gradient(90deg, rgba(0,0,0,.12) 0 2px, transparent 2px 9px),
+    linear-gradient(#5a3a22, #3b2414 60%, #2a190d);
+  box-shadow: 0 0 0 3px #c4cad1, 0 0 0 5px #4a5057, inset 0 2px 0 rgba(255,255,255,.12), inset 0 -14px 24px rgba(0,0,0,.5);
+}
+.tv-screen {
+  position: relative; overflow: hidden; border-radius: 26px / 30px;
+  background: #050607;
+  box-shadow: 0 0 0 6px #17110c, 0 0 0 9px #8d8f93, inset 0 0 40px rgba(0,0,0,.9);
+}
+.tv-video {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: contain; object-position: center; background: #000;
+  pointer-events: none; opacity: 0; transition: opacity .6s;
+}
+.tv.live .tv-video { opacity: 1; }
+.tv-video::-webkit-media-controls { display: none !important; }
+.tv-msg {
+  position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; padding: 24px 48px; text-align: center; color: #e9fff4;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 2px, transparent 2px 4px),
+    radial-gradient(ellipse at center, #1d2a27 0%, #070a0a 75%);
+  transition: opacity .5s;
+}
+.tv-msg::before {
+  content: ""; position: absolute; inset: -50%; pointer-events: none; opacity: .14;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: tvSnow .5s steps(4) infinite;
+}
+@keyframes tvSnow { 25% { transform: translate(-6%, 4%); } 50% { transform: translate(5%, -7%); } 75% { transform: translate(-3%, -4%); } }
+.tv.live .tv-msg { opacity: 0; pointer-events: none; }
+.tv-msg-h { position: relative; font: 700 34px/1.1 "Oswald"; letter-spacing: .12em; text-transform: uppercase; color: #7dffc4; text-shadow: 0 0 12px rgba(125,255,196,.7); }
+.tv-msg-sub { position: relative; max-width: 560px; font: 20px/1.35 "Share Tech Mono", monospace; color: #cfe9de; }
+.tv-msg-prog { position: relative; min-height: 22px; font: 18px "Share Tech Mono", monospace; color: var(--amber); letter-spacing: .08em; }
+.tv.loading .tv-msg-h::after { content: ""; display: inline-block; width: 1.4em; text-align: left; animation: tvDots 1.4s steps(4) infinite; }
+@keyframes tvDots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+.tv.novideo .tv-msg-h { color: #ff9a8a; text-shadow: 0 0 12px rgba(255,120,100,.6); }
+.tv-glass {
+  position: absolute; inset: 0; z-index: 3; pointer-events: none; border-radius: inherit;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at 30% 18%, rgba(255,255,255,.13), transparent 42%),
+    radial-gradient(ellipse at center, transparent 62%, rgba(0,0,0,.55));
+}
+.tv-side { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 6px 0; }
+.tv-brand { font: 600 17px "Oswald"; letter-spacing: .14em; color: #e8d6b4; }
+.tv-brand b { color: var(--amber); }
+.tv-ch { width: 140px; padding: 6px 0; border-radius: 8px; text-align: center; background: #120606; box-shadow: inset 0 0 0 2px #000, inset 0 0 14px rgba(255,75,62,.25); font-family: "Share Tech Mono"; color: var(--red); text-shadow: 0 0 8px rgba(255,75,62,.8); }
+.tv-ch small { display: block; font-size: 13px; letter-spacing: .12em; }
+.tv-ch b { display: block; font: 34px/1 "Share Tech Mono"; letter-spacing: .06em; }
+.tv-knobs { display: flex; gap: 18px; }
+.tv-knobs i { width: 54px; height: 54px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #fff, #d7dce1 50%, #8c949c); box-shadow: 0 4px 0 #2b2f34, 0 6px 10px rgba(0,0,0,.6), inset 0 0 0 3px #b8bfc6; position: relative; }
+.tv-knobs i::after { content: ""; position: absolute; left: 50%; top: 6px; width: 4px; height: 18px; margin-left: -2px; border-radius: 2px; background: #2a2f35; }
+.tv-knobs i:last-child { transform: rotate(120deg); }
+.tv-sync { display: flex; align-items: center; gap: 8px; font: 14px "Share Tech Mono", monospace; color: #e8d6b4; letter-spacing: .04em; text-transform: uppercase; }
+.tv-lamp { width: 14px; height: 14px; border-radius: 50%; background: #3a2a20; box-shadow: inset 0 0 0 2px rgba(0,0,0,.5); }
+.tv.live .tv-lamp { background: #5dff9e; box-shadow: 0 0 10px #5dff9e, inset 0 0 0 2px rgba(0,0,0,.2); }
+.tv.live.playing .tv-lamp { animation: tvLamp 1s ease-in-out infinite alternate; }
+@keyframes tvLamp { to { box-shadow: 0 0 2px #5dff9e, inset 0 0 0 2px rgba(0,0,0,.2); opacity: .6; } }
+.tv-grille { flex: 1; width: 140px; border-radius: 10px; background: radial-gradient(circle, #170e07 2.4px, transparent 3px) 0 0 / 12px 12px, linear-gradient(#4a2f1b, #2e1c0f); box-shadow: inset 0 0 0 2px rgba(0,0,0,.4); }
+@media (prefers-reduced-motion: reduce) {
+  .flip-inner { transition-duration: .01s; }
+  .tv-msg::before, .tv.live.playing .tv-lamp { animation: none; }
+}
+
 /* ---------- selector ---------- */
 .selector {
   flex: 0 0 68px; display: flex; align-items: center; gap: 14px;

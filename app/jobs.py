@@ -7,7 +7,7 @@ import math
 import time
 from typing import Any
 
-from . import analyze, lyria, svs, tts, video
+from . import analyze, lyria, svs, tts, tv, video
 from .audio_utils import finalize, track_tags
 from .config import settings
 from .db import DB
@@ -136,6 +136,7 @@ class Pipeline:
             if item.get("video_url"):
                 # Video stills (first 30 s) and the main image are fetched side by side.
                 self.db.set_stage(code, "watching")
+                tv.ensure(item["id"])  # the little TV clip builds while Gemini listens
                 image, frames = await asyncio.gather(svs.fetch_image(item), video.extract_frames(item["video_url"]))
             else:
                 image = await svs.fetch_image(item)  # no mp4: skip video, use the page only

@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import svs, tts
+from . import svs, tts, tv
 from .categories import CATEGORIES
 from .config import ROOT, settings
 from .db import DB
@@ -207,6 +207,25 @@ async def tts_audio(code: str, section: str) -> FileResponse:
         log.warning("TTS %s/%s failed: %s", code, section, exc)
         raise HTTPException(502, "Text-to-speech failed")
     return FileResponse(path, media_type="audio/mpeg", headers={"Cache-Control": "public, max-age=86400"})
+
+
+@app.get("/api/tv/{code}")
+async def tv_status(code: str) -> dict:
+    """The little TV's clip for this record: ready | building | none | failed (starts a build)."""
+    row = db.get(code) if CODE_RE.match(code) else None
+    if not row:
+        raise HTTPException(404, "Unknown record")
+    state = tv.ensure(row["svs_id"])
+    return {"state": state, "url": f"/api/tv/{code}/clip.mp4" if state == "ready" else None}
+
+
+@app.get("/api/tv/{code}/clip.mp4", include_in_schema=False)
+async def tv_clip(code: str) -> FileResponse:
+    row = db.get(code) if CODE_RE.match(code) else None
+    path = tv.clip_path(row["svs_id"]) if row else None
+    if not path or not path.exists():
+        raise HTTPException(404, "No clip")
+    return FileResponse(path, media_type="video/mp4", headers={"Cache-Control": "public, max-age=86400"})
 
 
 @app.get("/api/recent")

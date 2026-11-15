@@ -69,6 +69,10 @@ class Settings:
         return self.data_dir / "tts"
 
     @property
+    def tv_dir(self) -> Path:
+        return self.data_dir / "tv"
+
+    @property
     def db_path(self) -> Path:
         return self.data_dir / "jukebox.db"
 
@@ -77,3 +81,4 @@ settings = Settings()
 settings.audio_dir.mkdir(parents=True, exist_ok=True)
 settings.tmp_dir.mkdir(parents=True, exist_ok=True)
 settings.tts_dir.mkdir(parents=True, exist_ok=True)
+settings.tv_dir.mkdir(parents=True, exist_ok=True)

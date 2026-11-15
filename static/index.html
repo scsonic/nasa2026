@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@400;700&family=Monoton&family=Oswald:wght@400;600;700&family=Patrick+Hand&family=Share+Tech+Mono&family=Special+Elite&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/jukebox.css?v=21">
+  <link rel="stylesheet" href="/static/jukebox.css?v=22">
 </head>
 <body>
   <div id="sr-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
@@ -102,28 +102,56 @@
 
           </section>
 
-          <!-- Category keys -->
-          <section class="keys-wrap" aria-labelledby="keys-label">
-            <h2 id="keys-label" class="sr-only">Topics</h2>
-            <button id="dial-prev" class="dial-btn" type="button" aria-label="Previous topic">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-8 7 8 7z"/></svg>
-            </button>
-            <div id="keys" class="dial" role="group" aria-labelledby="keys-label" aria-roledescription="topic dial"></div>
-            <button id="dial-next" class="dial-btn" type="button" aria-label="Next topic">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l8 7-8 7z"/></svg>
-            </button>
-          </section>
+          <!-- Topics + cards on the front; flips over to the little TV while a record is loaded -->
+          <div id="flipper" class="flipper">
+            <div class="flip-inner">
+              <div id="flip-front" class="flip-front">
+              <!-- Category keys -->
+              <section class="keys-wrap" aria-labelledby="keys-label">
+                <h2 id="keys-label" class="sr-only">Topics</h2>
+                <button id="dial-prev" class="dial-btn" type="button" aria-label="Previous topic">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-8 7 8 7z"/></svg>
+                </button>
+                <div id="keys" class="dial" role="group" aria-labelledby="keys-label" aria-roledescription="topic dial"></div>
+                <button id="dial-next" class="dial-btn" type="button" aria-label="Next topic">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l8 7-8 7z"/></svg>
+                </button>
+              </section>
 
-          <!-- Six cards + elevator (floor) panel -->
-          <section class="cards-wrap" aria-labelledby="cards-label">
-            <h2 id="cards-label" class="sr-only">Records on this floor</h2>
-            <ol id="cards" class="cards"></ol>
-            <div class="elevator" role="group" aria-label="Floors">
-              <button id="floor-up" class="floor-btn" type="button" aria-label="Previous floor (previous 6 results)">▲</button>
-              <div class="floor-dial" aria-live="polite"><small>FLOOR</small><b id="floor-num">--</b><small id="floor-of">of --</small></div>
-              <button id="floor-down" class="floor-btn" type="button" aria-label="Next floor (next 6 results)">▼</button>
+              <!-- Six cards + elevator (floor) panel -->
+              <section class="cards-wrap" aria-labelledby="cards-label">
+                <h2 id="cards-label" class="sr-only">Records on this floor</h2>
+                <ol id="cards" class="cards"></ol>
+                <div class="elevator" role="group" aria-label="Floors">
+                  <button id="floor-up" class="floor-btn" type="button" aria-label="Previous floor (previous 6 results)">▲</button>
+                  <div class="floor-dial" aria-live="polite"><small>FLOOR</small><b id="floor-num">--</b><small id="floor-of">of --</small></div>
+                  <button id="floor-down" class="floor-btn" type="button" aria-label="Next floor (next 6 results)">▼</button>
+                </div>
+              </section>
+              </div>
+
+              <section id="flip-back" class="flip-back" aria-label="Video of this record, synced to the music" inert>
+                <div class="tv">
+                  <div class="tv-screen">
+                    <video id="tv-video" class="tv-video" muted playsinline preload="auto" disablepictureinpicture disableremoteplayback tabindex="-1" aria-hidden="true"></video>
+                    <div id="tv-msg" class="tv-msg" role="status">
+                      <div id="tv-msg-h" class="tv-msg-h">Video loading · please wait</div>
+                      <div id="tv-msg-sub" class="tv-msg-sub">The video is large, please wait. Once it has loaded, it will play in sync with the music.</div>
+                      <div id="tv-msg-prog" class="tv-msg-prog"></div>
+                    </div>
+                    <div class="tv-glass" aria-hidden="true"></div>
+                  </div>
+                  <div class="tv-side" aria-hidden="true">
+                    <div class="tv-brand">EARTH<b>VISION</b></div>
+                    <div class="tv-ch"><small>CH</small><b id="tv-ch">-----</b></div>
+                    <div class="tv-knobs"><i></i><i></i></div>
+                    <div class="tv-sync"><span id="tv-lamp" class="tv-lamp"></span><span>Synced to music</span></div>
+                    <div class="tv-grille"></div>
+                  </div>
+                </div>
+              </section>
             </div>
-          </section>
+          </div>
 
           <!-- Number selector + START -->
           <section class="selector" aria-label="Select a record">
@@ -195,6 +223,6 @@
   </div>
 
   <audio id="audio" preload="auto"></audio>
-  <script type="module" src="/static/jukebox.js?v=19"></script>
+  <script type="module" src="/static/jukebox.js?v=20"></script>
 </body>
 </html>

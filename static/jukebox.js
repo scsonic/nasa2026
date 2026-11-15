@@ -29,6 +29,8 @@ const el = {
   nd: $("#numdlg"), ndForm: $("#nd-form"), ndInput: $("#nd-input"), ndMsg: $("#nd-msg"), ndCancel: $("#nd-cancel"), ndOk: $("#nd-ok"),
   chalk: $("#chalk"), tilt: $("#tilt"), tiltMsg: $("#tilt-msg"), tiltOk: $("#tilt-ok"), tiltH: $("#tilt-h"),
   audio: $("#audio"),
+  flipper: $("#flipper"), flipFront: $("#flip-front"), flipBack: $("#flip-back"), tv: $("#flip-back .tv"),
+  tvVideo: $("#tv-video"), tvMsgH: $("#tv-msg-h"), tvMsgSub: $("#tv-msg-sub"), tvMsgProg: $("#tv-msg-prog"), tvCh: $("#tv-ch"),
 };
 
 const state = {
@@ -37,6 +39,7 @@ const state = {
   code: null, data: null, track: "lyria", loadedSrc: null, autoplay: false, pollTimer: null,
   synced: false, boardTop: null, boardAnalysis: false, finished: false,
   audioCtx: null, analyser: null, peaks: [],
+  tv: null,
 };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -425,10 +428,12 @@ function openGeneration(code, { autoplay = false, preview = null } = {}) {
   el.json.href = `/api/generations/${code}/record`;
   setLcd("Loading the record…", preview ? `${pad5(preview.id)} · ${preview.title}` : "…");
   if (preview) renderBoard({ code, svs: preview, analysis: null, status: "queued", tracks: {} });
+  tvOpen(code, preview ? preview.id : null);
   poll();
 }
 function eject(push = true) {
   resetPlayer();
+  tvClose();
   state.code = null;
   el.eject.disabled = true;
   setNumber(""); select(null);
@@ -466,6 +471,7 @@ function render(d) {
     };
     showcase(state.selected);
   }
+  if (state.tv && state.tv.code === d.code && d.svs && d.svs.id) el.tvCh.textContent = pad5(d.svs.id);
   // If the current part failed, move to one that can still play.
   const cur = d.tracks[state.track];
   if (cur && (cur.status === "failed" || cur.status === "disabled")) {
@@ -589,6 +595,106 @@ function onEnded() {
   renderTransport();
   renderParts(d);
   announce("Finished.");
+}
+
+
+/* ===================== little TV (the record's video, slaved to the music) ===================== */
+// The TV has no controls: it only mirrors the MP3. Both parts were composed from the first
+// 30 s of the video, so each part plays the clip from 0 alongside its own audio time.
+const TV_TEXT = {
+  loading: ["Video loading · please wait", "The video is large, please wait. Once it has loaded, it will play in sync with the music."],
+  none: ["No video", "This NASA record has no video, only still images."],
+  failed: ["Video unavailable", "The video could not be prepared right now. The music still plays."],
+};
+function tvMessage(kind, prog = "") {
+  const [head, sub] = TV_TEXT[kind];
+  el.tvMsgH.textContent = head; el.tvMsgSub.textContent = sub; el.tvMsgProg.textContent = prog;
+  el.tv.classList.toggle("loading", kind === "loading");
+  el.tv.classList.toggle("novideo", kind !== "loading");
+  el.tv.classList.remove("live");
+}
+function tvFlip(on) {
+  el.flipper.classList.toggle("flipped", on);
+  el.flipFront.inert = on;
+  el.flipBack.inert = !on;
+}
+function tvOpen(code, svsId) {
+  if (state.tv && state.tv.code === code) return;
+  tvClose(false);
+  const tv = { code, url: null, ready: false };
+  state.tv = tv;
+  el.tvCh.textContent = svsId ? pad5(svsId) : "-----";
+  tvMessage("loading", "Preparing the video");
+  tvFlip(true);
+  tvLoad(tv);
+}
+function tvClose(flipBack = true) {
+  const tv = state.tv;
+  state.tv = null;
+  el.tvVideo.pause();
+  el.tvVideo.removeAttribute("src"); el.tvVideo.load();
+  if (tv && tv.url) URL.revokeObjectURL(tv.url);
+  el.tv.classList.remove("live", "playing");
+  if (flipBack) tvFlip(false);
+}
+async function tvLoad(tv) {
+  const alive = () => state.tv === tv;
+  let info = null;
+  for (let tries = 0; alive() && tries < 200; tries++) {
+    try {
+      const r = await fetch(`/api/tv/${tv.code}`, { cache: "no-store" });
+      if (r.status === 404) { info = { state: "failed" }; break; }
+      info = await r.json();
+      if (info.state !== "building") break;
+    } catch { /* network blip: keep waiting */ }
+    if (alive()) el.tvMsgProg.textContent = "Preparing the video";
+    await sleep(2000);
+  }
+  if (!alive()) return;
+  if (!info || info.state !== "ready") { tvMessage(info && info.state === "none" ? "none" : "failed"); return; }
+  // Download the whole clip first, so it never stalls once it starts following the music.
+  try {
+    const resp = await fetch(info.url);
+    if (!resp.ok) throw new Error(String(resp.status));
+    const total = Number(resp.headers.get("Content-Length")) || 0;
+    const reader = resp.body.getReader();
+    const chunks = []; let got = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!alive()) { reader.cancel(); return; }
+      chunks.push(value); got += value.length;
+      el.tvMsgProg.textContent = total ? `Loading ${Math.round((got / total) * 100)}%` : `Loading ${(got / 1048576).toFixed(1)} MB`;
+    }
+    if (!alive()) return;
+    tv.url = URL.createObjectURL(new Blob(chunks, { type: "video/mp4" }));
+  } catch {
+    if (alive()) tvMessage("failed");
+    return;
+  }
+  el.tvVideo.src = tv.url;
+  el.tvVideo.addEventListener("loadeddata", () => {
+    if (!alive()) return;
+    tv.ready = true;
+    el.tv.classList.remove("loading", "novideo");
+    el.tv.classList.add("live");
+    announce("The video is ready and plays in sync with the music.");
+    tvSync(true);
+  }, { once: true });
+  el.tvVideo.addEventListener("error", () => { if (alive()) tvMessage("failed"); }, { once: true });
+}
+function tvSync(force = false) {
+  const tv = state.tv;
+  const v = el.tvVideo;
+  if (!tv || !tv.ready) return;
+  const a = el.audio;
+  const playing = Boolean(a.src) && !a.paused && !a.ended;
+  el.tv.classList.toggle("playing", playing);
+  const end = Number.isFinite(v.duration) ? Math.max(0, v.duration - 0.05) : Infinity;
+  const target = Math.min(a.src ? a.currentTime || 0 : 0, end);
+  if (force || Math.abs(v.currentTime - target) > 0.25) v.currentTime = target;
+  if (playing && target < end) { if (v.paused) v.play().catch(() => {}); }
+  else if (!v.paused) v.pause();
 }
 
 /* ===================== blackboard ===================== */
@@ -934,7 +1040,10 @@ function wire() {
     if (state.data && !el.audio.ended) renderTransport();
   });
   el.audio.addEventListener("ended", onEnded);
+  ["play", "playing", "pause", "seeked", "ended", "emptied", "loadedmetadata", "ratechange"].forEach((ev) => el.audio.addEventListener(ev, () => tvSync(true)));
+  el.audio.addEventListener("waiting", () => { if (!el.tvVideo.paused) el.tvVideo.pause(); });
   el.audio.addEventListener("timeupdate", () => {
+    tvSync();
     const dur = el.audio.duration;
     if (Number.isFinite(dur) && dur > 0) el.seek.value = String(Math.round((el.audio.currentTime / dur) * 1000));
     el.time.textContent = `${fmtTime(el.audio.currentTime)} / ${fmtTime(dur)}`;
